@@ -1,0 +1,1036 @@
+---
+title: "ワクチン接種歴と全死因死亡率の解析"
+date: 2025-08-29
+format: html
+editor: visual
+execute: 
+  echo: false
+  message: false
+  warning: false
+---
+# 分析手法と構成
+## 分析手法
+観察集団は、観察時の接種回数で分類される。すなわち、n回接種群は、観察時にn回接種した個人から構成される。
+
+人年法により各集団の発生率（全死因死亡率）を計算する。分子の発生数は、観察期間での死亡数であり、分母は集団の観察期間の合計である。n回接種群に含まれる個人の観察期間は、n回接種日から、死亡日・転出日の前日・つぎの接種日の前日のいずれかまで、である。
+
+分析の観察期間は、2021年2月1日から2024年3月31日までである。
+
+この分析で使用したRとパッケージは、R（4.5.1）、IncidencePrevalence（1.2.1）、popEpi（0.4.13）、readxl（1.4.5）、tidyverse（2.0.0）である。
+
+## 構成
+グラフは、1.浜松市＋松戸市、2.浜松市、3.松戸市の順に示されている。それぞれ、IncidencePrevalenceとpopEpiによる同一の集計がされている。
+分析は、
+
+分析1 接種の有無別（非接種は0回、接種は1回以上）
+
+分析2 年齢階層・接種の有無別
+
+分析3 年齢階層・接種回数別
+
+分析4 20～49歳、接種回数別
+
+分析5 20～49歳、四半期・接種回数別
+
+分析6 65～89歳、接種回数別
+
+分析7 65～89歳、四半期・接種回数別
+
+分析8 80歳以上、四半期・接種回数別
+
+である。四半期別の集計では、標準誤差が大きすぎてグラフがつぶれていることがあるので、
+ここでは示されていないが、評人誤差を含めないグラフも参考になる。
+
+加えて、浜松市と松戸市でのpopEpiによる集計では、ロット別の標準化死亡比が分析9として示されている。
+
+```{r}
+# VRS2_results (present analysis results)
+
+# 1. 初期設定
+# 自治体固有の設定
+municipality_id <- "JP"
+municipality_name <- "Japan"
+subdir <- paste0("")
+
+# 共通の設定
+library(tidyverse)
+
+file_name1 <- function(name) {
+  paste0(subdir, municipality_id, "_VRS1_", name, "_", municipality_name, ".csv")
+}
+file_name2 <- function(name) {
+  paste0(subdir, municipality_id, "_VRS2_", name, "_", municipality_name, ".csv")
+}
+
+readRate1 <- function(name) {
+  read_csv(file_name1(name)) |>
+    rename(
+      rate = incidence_100000_pys,
+      rate.lo = incidence_100000_pys_95CI_lower,
+      rate.hi = incidence_100000_pys_95CI_upper
+    )
+}
+
+readRate2 <- function(name) {
+  read_csv(file_name2(name)) |>
+  mutate(
+    rate = rate * 100000,
+    rate.lo = rate.lo * 100000,
+    rate.hi = rate.hi * 100000
+  ) 
+}
+
+readSir2 <- function(name) {
+  read_csv(file_name2(name))
+}
+
+plotRate <- function(df, x, title, xlab) {
+  df |>
+    ggplot(aes(x = factor({{ x }}), y = rate)) +
+    geom_col(width = 0.4, position = "dodge") +
+    geom_errorbar(aes(ymin = rate.lo, ymax = rate.hi),
+                  position = "dodge",
+                  width = 0.1) +
+    labs(title = title, x = xlab, y = "全死因死亡率（10万人年当たり）") +
+    theme_classic() +
+    theme(legend.position = "bottom")
+}
+
+plotRate2 <- function(df, x, fill, title, xlab) {
+  df |>
+    ggplot(aes(x = factor({{ x }}), y = rate,
+               fill =factor({{ fill }}))) +
+    geom_col(position = "dodge") +
+    geom_errorbar(aes(ymin = rate.lo, ymax = rate.hi),
+                  position = "dodge") +
+    labs(title = title,
+         x = xlab,
+         y = "全死因死亡率（10万人年当たり）",
+         fill = "ワクチン接種回数") +
+    theme_classic() +
+    theme(legend.position = "bottom")
+}
+
+plotSir <- function(df, x,  xlab) {
+  df |>
+    ggplot(aes(x = {{ x }}, y = sir)) +
+    geom_pointrange(aes(ymin = sir.lo, ymax = sir.hi)) +
+    geom_hline(yintercept = 1) +
+    coord_cartesian(ylim = c(0, 2)) +
+    labs(
+      title = "標準化死亡比（5,000人年以上）",
+      x = xlab,
+      y = "標準化死亡比"
+    ) +
+    theme_classic()
+}
+```
+
+# 1. 浜松市＋松戸市
+
+## 1.1 全死因死亡率の推定（IncidencePrevalenceによる）
+
+### 分析1　接種の有無別
+
+```{r}
+# 分析1
+inc_df <- readRate1("1")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種の有無別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1"),
+    labels = c("非接種", "接種")
+  )
+```
+
+### 分析2　年齢階層・接種の有無別
+
+```{r}
+# 分析2
+inc_df <- readRate1("2")
+
+inc_df |>
+  plotRate2(
+    x = denominator_age_group,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10() +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1"),
+    labels = c("非接種", "接種")
+  )
+```
+
+### 分析3　年齢階層・接種回数別
+
+```{r}
+# 分析3
+inc_df <- readRate1("3")
+
+inc_df |>
+  plotRate2(
+    x = denominator_age_group,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10() +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析4　20～49歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate1("4")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　20～49歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析5　20～49歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate1("5")
+
+inc_df |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　20～49歳　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析6　65～89歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate1("6")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　65～89歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析7　65～89歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate1("7")
+
+inc_df |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　65～89歳　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析8　80歳以上　四半期・接種回数別
+
+```{r}
+# 分析6
+inc_df <- readRate1("8")
+
+inc_df |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　80歳以上　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+## 1.2 全死因死亡率の推定（popEpiによる）
+
+### 分析1　接種の有無別
+
+```{r}
+# 分析1
+rate_df <- readRate2("rate_1")
+
+rate_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　接種の有無別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(limits = c("0", "1"), labels = c("非接種", "接種"))
+```
+
+### 分析2　年齢階層・接種の有無別
+
+```{r}
+# 分析2
+rate_df <- readRate2("rate_2")
+
+rate_df |>
+  plotRate2(
+    x = ageGroup,
+    fill = cohort_definition_id,
+    title = "全死因死亡率　年齢階層・接種の有無別",
+    xlab = "年齢階層"
+  ) + scale_y_log10()
+```
+
+### 分析3　年齢階層・接種回数別
+
+```{r}
+# 分析3
+rate_df <- readRate2("rate_3")
+
+rate_df |>
+  plotRate2(
+    x = ageGroup,
+    fill = cohort_definition_id,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10()
+```
+
+### 分析4　20～49歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate2("rate_4")
+
+inc_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　20～49歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  )
+```
+
+### 分析5　20～49歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate2("rate_5")
+
+inc_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率の推移　20～49歳　接種回数別",
+    xlab = "四半期"
+  )
+```
+
+### 分析6　65～89歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate2("rate_6")
+
+inc_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　65～89歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  )
+```
+
+### 分析7　65～89歳　四半期・接種回数別
+
+```{r}
+# 分析7
+inc_df <- readRate2("rate_7")
+
+inc_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率の推移　65～89歳　接種回数別",
+    xlab = "四半期"
+  )
+```
+
+### 分析8　80歳以上　四半期・接種回数別
+
+```{r}
+# 分析6
+rate_df <- readRate2("rate_8")
+
+rate_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率（80歳以上）　四半期・接種回数別",
+    xlab = "四半期"
+  )
+```
+
+# 2. 浜松市
+
+```{r}
+# VRS2_results (present analysis results)
+
+# 1. 初期設定
+# 自治体固有の設定
+municipality_id <- "221309"
+municipality_name <- "Hamamatsu"
+subdir <- paste0(municipality_id, "_", municipality_name, "/")
+```
+
+## 2.1 全死因死亡率の推定（IncidencePrevalenceによる）
+
+### 分析1　接種の有無別
+
+```{r}
+# 分析1
+inc_df <- readRate1("1")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種の有無別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1"),
+    labels = c("非接種", "接種")
+  )
+```
+
+### 分析2　年齢階層・接種の有無別
+
+```{r}
+# 分析2
+inc_df <- readRate1("2")
+
+inc_df |>
+  plotRate2(
+    x = denominator_age_group,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10() +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1"),
+    labels = c("非接種", "接種")
+  )
+```
+
+### 分析3　年齢階層・接種回数別
+
+```{r}
+# 分析3
+inc_df <- readRate1("3")
+
+inc_df |>
+  plotRate2(
+    x = denominator_age_group,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10() +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析4　20～49歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate1("4")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　20～49歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析5　20～49歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate1("5")
+
+inc_df |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　2～49歳　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析6　65～89歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate1("6")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　65～89歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析7　65～89歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate1("7")
+
+inc_df |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　65～89歳　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析8　80歳以上　四半期・接種回数別
+
+```{r}
+# 分析6
+inc_df <- readRate1("8")
+
+inc_df |>
+#  filter(denominator_target_cohort_name != "cohort_1") |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　80歳以上　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+## 2.2 全死因死亡率の推定（popEpiによる）
+
+### 分析1　接種の有無別
+
+```{r}
+# 分析1
+rate_df <- readRate2("rate_1")
+
+rate_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　接種の有無別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(limits = c("0", "1"), labels = c("非接種", "接種"))
+```
+
+### 分析2　年齢階層・接種の有無別
+
+```{r}
+# 分析2
+rate_df <- readRate2("rate_2")
+
+rate_df |>
+  plotRate2(
+    x = ageGroup,
+    fill = cohort_definition_id,
+    title = "全死因死亡率　年齢階層・接種の有無別",
+    xlab = "年齢階層"
+  ) + scale_y_log10()
+```
+
+### 分析3　年齢階層・接種回数別
+
+```{r}
+# 分析3
+rate_df <- readRate2("rate_3")
+
+rate_df |>
+  plotRate2(
+    x = ageGroup,
+    fill = cohort_definition_id,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10()
+```
+
+### 分析4　20～49歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate2("rate_4")
+
+inc_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　20～49歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  )
+```
+
+### 分析5　20～49歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate2("rate_5")
+
+inc_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率の推移　20～49歳　接種回数別",
+    xlab = "四半期"
+  )
+```
+
+### 分析6　65～89歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate2("rate_6")
+
+inc_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　65～89歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  )
+```
+
+### 分析7　65～89歳　四半期・接種回数別
+
+```{r}
+# 分析7
+inc_df <- readRate2("rate_7")
+
+inc_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率の推移　65～89歳　接種回数別",
+    xlab = "四半期"
+  )
+```
+
+### 分析8　80歳以上　四半期・接種回数別
+
+```{r}
+# 分析6
+rate_df <- readRate2("rate_8")
+
+rate_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率（80歳以上）　四半期・接種回数別",
+    xlab = "四半期"
+  )
+```
+
+### 分析9　ロット差
+
+```{r}
+# 3.標準化死亡比の推定（popEpiによる）
+
+# 分析9
+
+sir_df <- readSir2("sir")
+
+se_sub <- sir_df |>
+  filter(pyrs >= 5000)
+
+se_sub |>
+  filter(pyrs <= 200000) |>
+  plotSir(x = pyrs, xlab = "人年")
+
+se_sub |>
+  mutate(smr = expected / pyrs * 100000) |>
+  plotSir(x = smr, xlab = "年齢調整死亡率（10万人年当たり）")
+```
+
+# 3. 松戸市
+
+```{r}
+# VRS2_results (present analysis results)
+
+# 1. 初期設定
+# 自治体固有の設定
+municipality_id <- "122076"
+municipality_name <- "Matsudo"
+subdir <- paste0(municipality_id, "_", municipality_name, "/")
+```
+
+## 3.1 全死因死亡率の推定（IncidencePrevalenceによる）
+
+### 分析1　接種の有無別
+
+```{r}
+# 分析1
+inc_df <- readRate1("1")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種の有無別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1"),
+    labels = c("非接種", "接種")
+  )
+```
+
+### 分析2　年齢階層・接種の有無別
+
+```{r}
+# 分析2
+inc_df <- readRate1("2")
+
+inc_df |>
+  plotRate2(
+    x = denominator_age_group,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10() +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1"),
+    labels = c("非接種", "接種")
+  )
+```
+
+### 分析3　年齢階層・接種回数別
+
+```{r}
+# 分析3
+inc_df <- readRate1("3")
+
+inc_df |>
+  plotRate2(
+    x = denominator_age_group,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10() +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析4　20～49歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate1("4")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　20～49歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析5　20～49歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate1("5")
+
+inc_df |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　2～49歳　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析6　65～89歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate1("6")
+
+inc_df |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "全死因死亡率　65～89歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析7　65～89歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate1("7")
+
+inc_df |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　65～89歳　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+### 分析8　80歳以上　四半期・接種回数別
+
+```{r}
+# 分析6
+inc_df <- readRate1("8")
+
+inc_df |>
+  plotRate2(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    title = "全死因死亡率の推移　80歳以上　接種回数別",
+    xlab = "四半期"
+  ) +
+  scale_fill_discrete(
+    limits = c("cohort_0", "cohort_1", "cohort_2", "cohort_3", "cohort_4",
+               "cohort_5", "cohort_6", "cohort_7"),
+    labels = c("0", "1", "2", "3", "4", "5", "6", "7")
+  )
+```
+
+## 3.2 全死因死亡率の推定（popEpiによる）
+
+### 分析1　接種の有無別
+
+```{r}
+# 分析1
+rate_df <- readRate2("rate_1")
+
+rate_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　接種の有無別",
+    xlab = "ワクチン接種回数"
+  ) +
+  scale_x_discrete(limits = c("0", "1"), labels = c("非接種", "接種"))
+```
+
+### 分析2　年齢階層・接種の有無別
+
+```{r}
+# 分析2
+rate_df <- readRate2("rate_2")
+
+rate_df |>
+  plotRate2(
+    x = ageGroup,
+    fill = cohort_definition_id,
+    title = "全死因死亡率　年齢階層・接種の有無別",
+    xlab = "年齢階層"
+  ) + scale_y_log10()
+```
+
+### 分析3　年齢階層・接種回数別
+
+```{r}
+# 分析3
+rate_df <- readRate2("rate_3")
+
+rate_df |>
+  plotRate2(
+    x = ageGroup,
+    fill = cohort_definition_id,
+    title = "全死因死亡率　年齢階層・接種回数別",
+    xlab = "年齢階層"
+  ) +
+  scale_y_log10()
+```
+
+### 分析4　20～49歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate2("rate_4")
+
+inc_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　20～49歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  )
+```
+
+### 分析5　20～49歳　四半期・接種回数別
+
+```{r}
+# 分析5
+inc_df <- readRate2("rate_5")
+
+inc_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率の推移　20～49歳　接種回数別",
+    xlab = "四半期"
+  )
+```
+
+### 分析6　65～89歳　接種回数別
+
+```{r}
+# 分析4
+inc_df <- readRate2("rate_6")
+
+inc_df |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "全死因死亡率　65～89歳　接種回数別",
+    xlab = "ワクチン接種回数"
+  )
+```
+
+### 分析7　65～89歳　四半期・接種回数別
+
+```{r}
+# 分析7
+inc_df <- readRate2("rate_7")
+
+inc_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率の推移　65～89歳　接種回数別",
+    xlab = "四半期"
+  )
+```
+
+### 分析8　80歳以上　四半期・接種回数別
+
+```{r}
+# 分析6
+rate_df <- readRate2("rate_8")
+
+rate_df |>
+  plotRate2(
+    x = interval,
+    fill = cohort_definition_id,
+    title = "全死因死亡率（80歳以上）　四半期・接種回数別",
+    xlab = "四半期"
+  )
+```
+
+### 分析9　ロット差
+
+```{r}
+# 3.標準化死亡比の推定（popEpiによる）
+
+# 分析9
+
+sir_df <- readSir2("sir")
+
+se_sub <- sir_df |>
+  filter(pyrs >= 5000)
+
+se_sub |>
+  filter(pyrs <= 200000) |>
+  plotSir(x = pyrs, xlab = "人年")
+
+se_sub |>
+  mutate(smr = expected / pyrs * 100000) |>
+  plotSir(x = smr, xlab = "年齢調整死亡率（10万人年当たり）")
+```

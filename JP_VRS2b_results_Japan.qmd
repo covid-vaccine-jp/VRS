@@ -1,0 +1,446 @@
+---
+title: "COVID-19 Booster Vaccination and Increased Mortality: Detection of a Safety Signal in a Non-Elderly Population : Supplementary Information"
+date: 2025-10-30
+format: html
+editor: visual
+execute: 
+  echo: false
+  message: false
+  warning: false
+---
+
+Part 1 contains the tables which appear in the paper. They were derived from calculations with IncidencePrevalence package, except for Figure 5.
+
+Part 2 contains the figures which were derived from calculations with popEpi packages.
+
+Observation period is from February 1, 2021 to March 31, 2024, except for Figure 5.
+
+```{r}
+# VRS2_results (present analysis results)
+
+# 1. Initial settings
+# Manicipality-dependent settings
+municipality_id <- "JP"
+municipality_name <- "Japan"
+subdir <- paste0("")
+
+# Common settings
+library(tidyverse)
+
+file_name1 <- function(name) {
+  paste0(subdir, municipality_id, "_VRS1b_", name, "_", municipality_name, ".csv")
+}
+file_name2 <- function(name) {
+  paste0(subdir, municipality_id, "_VRS2b_", name, "_", municipality_name, ".csv")
+}
+
+readRate1 <- function(name) {
+  read_csv(file_name1(name)) |>
+    rename(
+      rate = incidence_100000_pys,
+      rate.lo = incidence_100000_pys_95CI_lower,
+      rate.hi = incidence_100000_pys_95CI_upper
+    )
+}
+
+readRate2 <- function(name) {
+  read_csv(file_name2(name)) |>
+    mutate(
+      rate = rate * 100000,
+      rate.lo = rate.lo * 100000,
+      rate.hi = rate.hi * 100000
+    )
+}
+
+plotRate <- function(df, x, title, xlab) {
+  df |>
+    ggplot(aes(x = factor({{ x }}), y = rate)) +
+    #    geom_col(position = "dodge") +
+    #    geom_col(width = 0.4, position = "dodge") +
+    geom_point() +
+    geom_errorbar(aes(ymin = rate.lo, ymax = rate.hi),
+      position = "dodge",
+      width = 0.1
+    ) +
+    labs(title = title, x = xlab, y = "all-cause mortality rate (per 100,000)") +
+    theme_classic() +
+    theme(legend.position = "bottom")
+}
+
+plotRate2 <- function(df, x, fill, errorbar, title, xlab) {
+  base <- df |>
+    ggplot(aes(
+      x = factor({{ x }}), y = rate,
+      fill = factor({{ fill }})
+    )) +
+    geom_col(position = "dodge") +
+    labs(
+      title = title,
+      x = xlab,
+      y = "all-cause mortality rate (per 100,000)",
+      fill = "number of vaccine doses"
+    ) +
+    theme_classic() +
+    theme(legend.position = "bottom")
+
+  if (errorbar == FALSE) {
+    base 
+  } else {
+    base + 
+    geom_errorbar(aes(ymin = rate.lo, ymax = rate.hi),
+                  position = "dodge")
+  }
+}
+
+age20_49 <- c(
+  "20～24歳", "25～29歳", "30～34歳", "35～39歳", "40～44歳", "45～49歳",
+  "2001～2006", "1996～2000", "1991～1995",
+  "1986～1990", "1981～1985", "1976～1980"
+)
+age50_64 <- c(
+  "50～54歳", "55～59歳", "60～64歳", "1971～1975", "1966～1970", "1961～1965"
+)
+age65_89 <- c(
+  "65～69歳", "70～74歳", "75～79歳", "80～84歳", "85～89歳",
+  "1956～1960", "1951～1955", "1946～1950",
+  "1941～1945", "1936～1940"
+)
+```
+
+# 1. Figures in the paper (using IncidencePrevalence package)
+
+## Figure 1 Distribution of the number of vaccine doses across age groups
+
+```{r}
+plotCount <- function(df, x, fill, title, xlab) {
+  df |>
+    ggplot(aes(x = factor({{ x }}),
+               y = n,
+               fill =factor({{ fill }}))) +
+    geom_col(position = position_fill(reverse = TRUE)) +
+    coord_flip() +
+    scale_x_discrete(
+      limits = c(
+        "0", "10", "20", "30", "40",
+        "50", "60", "70", "80", "90"
+      ),
+      labels = c(
+        "0-9", "10-19", "20-29", "30-39", "40-49",
+        "50-59", "60-69", "70-79", "80-89", "90-"
+      )
+    ) +
+    labs(title = title,
+         x = xlab,
+         y = "number of persons",
+         fill = "number of vaccine doses") +
+    theme_classic() +
+    theme(legend.position = "bottom")
+}
+
+inc_df <- read_csv("JP_VRS1b_lastid_Japan.csv")
+
+inc_df |>
+  plotCount(
+    x = age_group,
+    fill = last_id,
+    title = "",
+    xlab = "age group"
+  )
+```
+
+## Figure 2 All-cause mortality by age group and number of vaccine doses
+
+```{r}
+inc_df <- readRate1("1") |>
+  mutate(
+    denominator_age_group = str_replace(denominator_age_group, " to ", "-"),
+    denominator_age_group = if_else(
+      denominator_age_group == "90-150",
+      "90-",
+      denominator_age_group
+    )
+  ) |>
+  mutate(denominator_target_cohort_name = str_replace(
+    denominator_target_cohort_name, "cohort_", ""
+  ))
+
+inc_df |>
+  plotRate2(
+    x = denominator_age_group,
+    fill = denominator_target_cohort_name,
+    errorbar = TRUE,
+    title = "",
+    xlab = "age group"
+  ) +
+  scale_y_log10()
+```
+
+## Figure 3 All-cause mortality by number of vaccine doses in age groups 20–49 (A), 50–64 (B), and 65–89 (C)
+
+```{r}
+inc_df <- readRate1("2") |>
+  mutate(denominator_target_cohort_name = str_replace(
+    denominator_target_cohort_name, "cohort_", ""
+  )) |>
+  mutate(denominator_age_group = recode(
+    denominator_age_group,
+    "20 to 49" = "Age 20-49",
+    "50 to 64" = "Age 50-64",
+    "65 to 89" = "Age 65-89"
+  ))
+
+inc_df |>
+  filter(denominator_age_group == "Age 20-49") |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "Age 20-49",
+    xlab = "number of vaccine doses"
+  )
+
+inc_df |>
+  filter(denominator_age_group == "Age 50-64") |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "Age 50-64",
+    xlab = "number of vaccine doses"
+  )
+
+inc_df |>
+  filter(denominator_age_group == "Age 65-89") |>
+  plotRate(
+    x = denominator_target_cohort_name,
+    title = "Age 65-89",
+    xlab = "number of vaccine doses"
+  )
+```
+
+## Figure 4 Distribution of days from vaccination to death for ages 20–49 (A), 50–64 (B), and 65–89 (C)
+
+```{r}
+plotDuration <- function(df, x, title, xlab){
+  df |>
+    ggplot(aes(x = duration)) +
+    geom_histogram(binwidth = 10) +
+    facet_grid(drug_exposure_id ~ .) +
+    scale_x_continuous(limits = c(0, 500)) +
+    labs(
+      x = xlab,
+      y = "number of persons",
+      title = title
+    ) +
+    theme_classic()
+}
+  
+duration_df <- read_csv("JP_VRS1b_duration_Japan.csv") |>
+  filter((drug_exposure_id >= 2) & (drug_exposure_id <= 7))
+
+duration_df |>
+  filter(group %in% age20_49) |>
+  plotDuration(duration, "Age 20-49", "days from vaccination to death")
+
+duration_df |>
+  filter(group %in% age50_64) |>
+  plotDuration(duration, "Age 50-64", "days from vaccination to death")
+
+duration_df |>
+  filter(group %in% age65_89) |>
+  plotDuration(duration, "Age 50-64", "days from vaccination to death")
+```
+
+## Figure 5 Monthly all-cause mortality by number of vaccine doses for ages 65–89
+
+```{r}
+lineRate2_1 <- function(df, x, fill, errorbar, title, xlab) {
+  df |>
+    ggplot(aes(
+      x = factor({{ x }}), y = rate,
+      colour = factor({{ fill }}), group = factor({{ fill }})
+    )) +
+    geom_line() +
+    scale_x_discrete(
+      breaks = c("2021-04-01", "2021-07-01", "2021-10-01", "2022-01-01",
+                 "2022-04-01", "2022-07-01", "2022-10-01", "2023-01-01",
+                 "2023-04-01", "2023-07-01", "2023-10-01", "2024-01-01"),
+      labels = c("2021-04", "2021-07", "2021-10", "2022-01",
+                 "2022-04", "2022-07", "2022-10", "2023-01",
+                 "2023-04", "2023-07", "2023-10", "2024-01")) +
+    labs(
+      title = title,
+      x = xlab,
+      y = "all-cause mortality rate (per 100,000)",
+      colour = "number of vaccine doses"
+    ) +
+    theme_classic() +
+    theme(legend.position = "bottom")
+}
+
+inc_df <- readRate1("4") |>
+  filter(denominator_target_cohort_name != "cohort_1") |>
+  mutate(denominator_target_cohort_name = str_replace(
+    denominator_target_cohort_name, "cohort_", ""
+  )) |>
+  mutate(incidence_start_date = as.character(incidence_start_date))
+
+inc_df |>
+  filter(denominator_age_group == "65 to 89") |>
+  lineRate2_1(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    errorbar = FALSE,
+    title = "",
+    xlab = "date"
+  )
+```
+
+## Figure 6 Time series of all-cause deaths among individuals with 0, 1–4, and 5–7 vaccine doses for ages 20–49 (A), 50–64 (B), and 65–89 (C)
+
+![Figure 6-1](JP_VRS2b_Fig6-1_Japan.png) ![Figure 6-2](JP_VRS2b_Fig6-2_Japan.png) ![Figure 6-3](JP_VRS2b_Fig6-3_Japan.png)
+
+## Supplementary Figure 1 Monthly all-cause mortality by number of vaccine doses among individuals for ages 20–49 (A) and 50–64 (B)
+
+```{r}
+inc_df <- readRate1("4") |>
+  filter(denominator_target_cohort_name != "cohort_1") |>
+  mutate(denominator_target_cohort_name = str_replace(
+    denominator_target_cohort_name, "cohort_", ""
+  )) |>
+  mutate(incidence_start_date = as.character(incidence_start_date))
+
+inc_df |>
+  filter(denominator_age_group == "20 to 49") |>
+  lineRate2_1(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    errorbar = FALSE,
+    title = "Age 20-49",
+    xlab = "date"
+  )
+
+inc_df |>
+  filter(denominator_age_group == "50 to 64") |>
+  lineRate2_1(
+    x = incidence_start_date,
+    fill = denominator_target_cohort_name,
+    errorbar = FALSE,
+    title = "Age 50-64",
+    xlab = "date"
+  )
+```
+
+# 2. Calculations using popEpi package
+
+## Supplementary Figure 2 All-cause mortality by age group and number of vaccine doses
+
+This figure corresponds to Figure 2.
+
+```{r}
+inc_df <- readRate2("rate_1")
+
+inc_df |>
+  plotRate2(
+    x = ageGroup,
+    fill = cohort_definition_id,
+    errorbar = TRUE,
+    title = "",
+    xlab = "age group"
+  ) +
+  scale_x_discrete(
+    limits = c(
+      "0", "10", "20", "30", "40",
+      "50", "60", "70", "80", "90"
+    ),
+    labels = c(
+      "0-9", "10-19", "20-29", "30-39", "40-49",
+      "50-59", "60-69", "70-79", "80-89", "90-"
+    )
+  ) +
+  scale_y_log10()
+```
+
+## Supplemetary Figure 3 All-cause mortality by number of vaccine doses in age groups 20–49 (A), 50–64 (B), and 65–89 (C)
+
+The figures corresponds to Figure 3.
+
+```{r}
+inc_df <- readRate2("rate_2")
+
+inc_df |>
+  filter(ageGroup == 20) |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "Age 20-49",
+    xlab = "number of vaccine doses"
+  )
+
+inc_df |>
+  filter(ageGroup == 50) |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "Age 50-64",
+    xlab = "number of vaccine doses"
+  )
+
+inc_df |>
+  filter(ageGroup == 65) |>
+  plotRate(
+    x = cohort_definition_id,
+    title = "Age 65-89",
+    xlab = "number of vaccine doses"
+  )
+```
+
+## Supplementary Figure 4 Monthly all-cause mortality by number of vaccine doses for ages 20–49 (A), 50–64 (B), and 65–89 (C)
+
+The figures corresponds to Figure 3 and Supplementary Figure 1.
+
+```{r}
+lineRate2_2 <- function(df, x, fill, errorbar, title, xlab) {
+  df |>
+    ggplot(aes(
+      x = interval, y = rate,
+      colour = factor({{ fill }}), group = factor({{ fill }})
+    )) +
+    geom_line() +
+    labs(
+      title = title,
+      x = xlab,
+      y = "all-cause mortality rate (per 100,000)",
+      colour = "number of vaccine doses"
+    ) +
+    theme_classic() +
+    theme(legend.position = "bottom")
+}
+
+inc_df <- readRate2("rate_4") |>
+  filter(cohort_definition_id != "1")
+
+inc_df |>
+  filter(ageGroup == "20") |>
+  lineRate2_2(
+    x = interval,
+    fill = cohort_definition_id,
+    errorbar = FALSE,
+    title = "Age 20-49",
+    xlab = "date"
+  )
+
+inc_df |>
+  filter(ageGroup == "50") |>
+  lineRate2_2(
+    x = interval,
+    fill = cohort_definition_id,
+    errorbar = FALSE,
+    title = "Age 50-64",
+    xlab = "date"
+  )
+
+inc_df |>
+  filter(ageGroup == "65") |>
+  lineRate2_2(
+    x = interval,
+    fill = cohort_definition_id,
+    errorbar = FALSE,
+    title = "Age 65-89",
+    xlab = "date"
+  )
+```

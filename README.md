@@ -22,3 +22,10 @@
 岩本康志・楠博・上島有加里・酒井亮太・掛谷英紀「[COVID-19ワクチン追加接種と死亡率の上昇：非高齢者集団における 安全性シグナルの検出](https://doi.org/10.51094/jxiv.1508)」は、上記のデータを用いて、とくに非高齢者に焦点を当てて考察した論文である。
 
 ウェブで公開しているコードは、[こちら](docs/doc_003_2508.pdf)で解説している。解析結果のグラフは、[こちら](https://covid-vaccine-jp.iwmtyss.com/VRS/JP_VRS2a_results_Japan.html)にまとめられている。
+
+# "COVID-19 Booster Vaccination and Increased Mortality: Detection of a Safety Signal in a Non-Elderly Population"
+
+Iwamoto,  Y.; Kusunoki,  H.; Kamijima,  Y.; Sakai,  R.; Watanabe,  Y.; Kakeya,  H. COVID-19 Booster Vaccination and Increased Mortality: Detection of a Safety Signal in a Non-Elderly Population. Preprints 2025, 2025110090. [https://www.preprints.org/manuscript/202511.0090](https://www.preprints.org/manuscript/202511.0090)
+
+[Supplementary material 1](/docs/doc_004_2510.pdf) explains data and code used in the paper.
+[Supplementary material 2](https://covid-vaccine-jp.iwmtyss.com/VRS/JP_VRS2b_results_Japan.html) collects figures appeard in the paper with additional figures.

@@ -1,3 +1,15 @@
+# "Age-Specific Patterns of All-Cause Mortality Across COVID-19 Booster Dose Groups in Two Japanese Municipalities: An Exploratory Analysis"
+
+Iwamoto, Y.; Kusunoki, H.; Kamijima, Y.; Sakai, R.; Watanabe, Y.; Kakeya, H. Age-Specific Patterns of All-Cause Mortality Across COVID-19 Booster Dose Groups in Two Japanese Municipalities: An Exploratory Analysis. 2026
+
+[Supplementary material 1](/docs/doc_005_2603.pdf) explains data and code used in the paper.
+[Supplementary material 2](https://covid-vaccine-jp.iwmtyss.com/VRS/JP_VRS2b2_results_Japan.html) collects figures appeard in the paper with additional figures.
+
+An earlier version was released as:
+Iwamoto, Y.; Kusunoki, H.; Kamijima, Y.; Sakai, R.; Watanabe, Y.; Kakeya, H. COVID-19 Booster Vaccination and Increased Mortality: Detection of a Safety Signal in a Non-Elderly Population. Preprints 2025, 2025110090. [https://www.preprints.org/manuscript/202511.0090](https://www.preprints.org/manuscript/202511.0090)
+([Supplementary material 1](/docs/doc_004_2510.pdf) explains data and code used in the paper.
+[Supplementary material 2](https://covid-vaccine-jp.iwmtyss.com/VRS/JP_VRS2b_results_Japan.html) collects figures appeard in the paper with additional figures.)
+
 # 「ザ・ライフ」に提供された分析
 2025年8月29日（金）にNHK総合（九州沖縄）で放送された「ザ・ライフ　ネクストパンデミックに備えて　コロナワクチンとデータ検証」（9月12日(金)19:55まで[見逃し配信](https://plus.nhk.jp/watch/st/400_g1_2025082938566)）の番組制作のために、浜松市と松戸市から情報開示されたワクチン接種記録と死亡のデータの解析が、岩本康志と上島有加里に依頼された。番組制作班に提供された分析は、以下の通りである。
 
@@ -22,10 +34,3 @@
 岩本康志・楠博・上島有加里・酒井亮太・掛谷英紀「[COVID-19ワクチン追加接種と死亡率の上昇：非高齢者集団における 安全性シグナルの検出](https://doi.org/10.51094/jxiv.1508)」は、上記のデータを用いて、とくに非高齢者に焦点を当てて考察した論文である。
 
 ウェブで公開しているコードは、[こちら](docs/doc_003_2508.pdf)で解説している。解析結果のグラフは、[こちら](https://covid-vaccine-jp.iwmtyss.com/VRS/JP_VRS2a_results_Japan.html)にまとめられている。
-
-# "COVID-19 Booster Vaccination and Increased Mortality: Detection of a Safety Signal in a Non-Elderly Population"
-
-Iwamoto,  Y.; Kusunoki,  H.; Kamijima,  Y.; Sakai,  R.; Watanabe,  Y.; Kakeya,  H. COVID-19 Booster Vaccination and Increased Mortality: Detection of a Safety Signal in a Non-Elderly Population. Preprints 2025, 2025110090. [https://www.preprints.org/manuscript/202511.0090](https://www.preprints.org/manuscript/202511.0090)
-
-[Supplementary material 1](/docs/doc_004_2510.pdf) explains data and code used in the paper.
-[Supplementary material 2](https://covid-vaccine-jp.iwmtyss.com/VRS/JP_VRS2b_results_Japan.html) collects figures appeard in the paper with additional figures.

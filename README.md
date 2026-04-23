@@ -1,12 +1,12 @@
 # "Age-Specific Patterns of All-Cause Mortality Across COVID-19 Booster Dose Groups in Two Japanese Municipalities: An Exploratory Analysis"
 
-Iwamoto, Y.; Kusunoki, H.; Kamijima, Y.; Sakai, R.; Watanabe, Y.; Kakeya, H. Age-Specific Patterns of All-Cause Mortality Across COVID-19 Booster Dose Groups in Two Japanese Municipalities: An Exploratory Analysis. 2026
+Iwamoto Y, Kusunoki H, Kamijima Y, Sakai R, Watanabe Y and Kakeya H (2026) Age-specific patterns of all-cause mortality across COVID-19 booster dose groups in two Japanese municipalities: an exploratory analysis. Front. Public Health 14:1795437. [https://doi.org/10.3389/fpubh.2026.1795437](https://doi.org/10.3389/fpubh.2026.1795437)
 
 [Supplementary material 1](/docs/doc_005_2603.pdf) explains data and code used in the paper.
 [Supplementary material 2](https://covid-vaccine-jp.iwmtyss.com/VRS/JP_VRS2b2_results_Japan.html) collects figures appeard in the paper with additional figures.
 
 An earlier version was released as:
-Iwamoto, Y.; Kusunoki, H.; Kamijima, Y.; Sakai, R.; Watanabe, Y.; Kakeya, H. COVID-19 Booster Vaccination and Increased Mortality: Detection of a Safety Signal in a Non-Elderly Population. Preprints 2025, 2025110090. [https://www.preprints.org/manuscript/202511.0090](https://www.preprints.org/manuscript/202511.0090)
+Iwamoto, Y.; Kusunoki, H.; Kamijima, Y.; Sakai, R.; Watanabe, Y.; Kakeya, H. COVID-19 Booster Vaccination and Increased Mortality: Detection of a Safety Signal in a Non-Elderly Population. Preprints 2025, 2025110090. [https://doi.org/10.20944/preprints202511.0090.v1](https://doi.org/10.20944/preprints202511.0090.v1)
 ([Supplementary material 1](/docs/doc_004_2510.pdf) explains data and code used in the paper.
 [Supplementary material 2](https://covid-vaccine-jp.iwmtyss.com/VRS/JP_VRS2b_results_Japan.html) collects figures appeard in the paper with additional figures.)
 
